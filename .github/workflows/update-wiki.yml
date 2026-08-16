@@ -40,10 +40,15 @@ on:
     types:
       - completed
 
-# contents: read is enough — the wiki push uses WIKI_SYNC_TOKEN, not
-# GITHUB_TOKEN, and this workflow never modifies the main repo.
+# contents: read is enough for checkout — the wiki push uses WIKI_SYNC_TOKEN,
+# not GITHUB_TOKEN, and this workflow never modifies the main repo.
+# id-token: write is required by claude-code-action@v1 itself: it mints a
+# short-lived GitHub token via OIDC on every run (not just for Workload
+# Identity Federation auth) and fails with "Could not fetch an OIDC token"
+# without this permission — observed directly from a live run.
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: update-wiki-${{ github.event.workflow_run.head_branch }}
