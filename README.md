@@ -1,5 +1,13 @@
 # llm-wiki
 
+## Personal knowledge base
+
+This repo is also a personal knowledge-base wiki, following the "LLM Wiki" pattern: `raw/` holds immutable source material (tracked in this repo), the actual wiki pages live in this repo's GitHub Wiki (browse them under the **Wiki** tab), and `CLAUDE.md` is the schema/workflow file that tells Claude Code how to ingest sources, answer queries, and keep the wiki healthy. See `CLAUDE.md` for the full workflow.
+
+`wiki/` in the working tree is a local clone of the GitHub Wiki (`git clone git@github.com:rybalkin-an/llm-wiki.wiki.git wiki`) — it's gitignored here since it's its own separate git repo with its own history and remote.
+
+This shares the same GitHub Wiki as the automated sync below, just via a different path: that automation pushes code/doc-driven updates on every merge to `main`; this personal-KB workflow pushes source-driven updates during an interactive Claude Code session. Both write to the same wiki repo but shouldn't collide in normal use.
+
 ## Automated wiki sync
 
 Two workflows keep this repo's GitHub Wiki in sync with code changes on merge to `main`:
