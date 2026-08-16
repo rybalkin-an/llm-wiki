@@ -1,0 +1,116 @@
+name: Update GitHub Wiki
+
+# ---------------------------------------------------------------------------
+# SETUP (one-time, before this workflow can run successfully)
+# ---------------------------------------------------------------------------
+# 1. Create the wiki repo.
+#    GitHub only initializes <repo>.wiki.git after at least one wiki page
+#    has been created through the web UI (Repo -> Wiki tab -> "Create the
+#    first page"). Do that once, manually, before the first run.
+#
+# 2. CLAUDE_CODE_OAUTH_TOKEN (subscription auth, no API key involved):
+#      - Run `claude setup-token` locally (requires a Claude Pro/Max login).
+#      - Copy the printed token.
+#      - Repo Settings -> Secrets and variables -> Actions -> New repository
+#        secret -> name it CLAUDE_CODE_OAUTH_TOKEN -> paste the value.
+#
+# 3. WIKI_SYNC_TOKEN (a GitHub PAT, classic or fine-grained, with `repo`
+#    scope / "Contents: read and write" on this repository):
+#      - The default GITHUB_TOKEN cannot push to <repo>.wiki.git — wikis
+#        are not covered by the `contents` permission grant.
+#      - Create a PAT under Settings -> Developer settings -> Personal
+#        access tokens, then add it as secret WIKI_SYNC_TOKEN.
+#
+# 4. Adjust the `paths:` filter below to match the folders in this repo
+#    that should actually drive documentation updates.
+# ---------------------------------------------------------------------------
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "docs/**"
+      - "README.md"
+
+# contents: read is enough — the wiki push uses WIKI_SYNC_TOKEN, not
+# GITHUB_TOKEN, and this workflow never modifies the main repo.
+permissions:
+  contents: read
+
+concurrency:
+  group: update-wiki-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+        with:
+          path: repo
+          fetch-depth: 0
+
+      - name: Checkout wiki repo
+        run: |
+          git clone "https://x-access-token:${WIKI_SYNC_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
+        env:
+          WIKI_SYNC_TOKEN: ${{ secrets.WIKI_SYNC_TOKEN }}
+
+      - name: Compute scoped diff
+        id: diff
+        working-directory: repo
+        run: |
+          BEFORE="${{ github.event.before }}"
+          # First push to main (or a force-push) can report an all-zero SHA;
+          # fall back to the parent of HEAD in that case.
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            BEFORE=$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)
+          fi
+
+          git diff "$BEFORE" "${{ github.sha }}" -- src docs README.md > ../wiki-sync.diff || true
+
+          if [ ! -s ../wiki-sync.diff ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Claude Code to update wiki pages
+        if: steps.diff.outputs.changed == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            A change was just merged to main in this repository. The full
+            diff of the relevant files (src/**, docs/**, README.md only) is
+            saved at ./wiki-sync.diff — read that file for context, do not
+            review the rest of the repo.
+
+            The GitHub wiki is checked out at ./wiki. Update only the wiki
+            pages that are actually affected by this diff (e.g. reflect a
+            renamed function, a new config option, a changed CLI flag). Do
+            not touch unrelated pages, do not reformat pages you aren't
+            updating, and do not create new pages unless the diff introduces
+            something with no existing wiki coverage at all.
+
+            If nothing in the diff warrants a wiki update, make no changes.
+          claude_args: |
+            --max-turns 12
+            --allowedTools "Read,Edit,Write"
+
+      - name: Commit and push wiki changes
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: wiki
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Claude made no wiki changes for this diff."
+          else
+            git commit -m "Auto-update wiki for ${{ github.sha }}"
+            git push
+          fi
