@@ -17,4 +17,4 @@ Two workflows keep this repo's GitHub Wiki in sync with code changes on merge to
 2. Generate a Claude Code OAuth token locally (`claude setup-token`, needs a Pro/Max login) and add it as repo secret `CLAUDE_CODE_OAUTH_TOKEN`. No `ANTHROPIC_API_KEY` is used anywhere.
 3. Generate a classic GitHub PAT with `repo` scope and add it as repo secret `WIKI_SYNC_TOKEN` — the default `GITHUB_TOKEN` can't push to the wiki repo, and wiki access isn't reliably supported on fine-grained PATs.
 
-Full details and rationale are documented as comments at the top of the workflow file.
+Full details and rationale are documented as comments at the top of `update-wiki.yml` and `wiki-sync-detect.yml`.
