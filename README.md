@@ -8,6 +8,41 @@ This repo is also a personal knowledge-base wiki, following the "LLM Wiki" patte
 
 This shares the same GitHub Wiki as the automated sync below, just via a different path: that automation pushes code/doc-driven updates on every merge to `main`; this personal-KB workflow pushes source-driven updates during an interactive Claude Code session. Both write to the same wiki repo but shouldn't collide in normal use.
 
+### Example workflow
+
+**Ingest** — you drop a source in `raw/` and ask Claude to process it:
+
+```
+> I've added raw/2026-08-sleep-article.md — can you ingest it?
+```
+
+Claude reads the file, talks through the key points with you first, then:
+- writes `wiki/Sources/2026-08-Sleep-Article.md` summarizing it, with a link back to the raw file
+- updates `wiki/Health.md` (creating it if it doesn't exist) with the new claims, e.g. adding a `## Sleep` section referencing `[[2026-08-Sleep-Article]]`
+- adds a one-line entry under **Health** and **Sources** in `wiki/Home.md`
+- appends to `wiki/Log.md`:
+  ```
+  ## [2026-08-16] ingest | 2026-08 Sleep Article
+  Added Sources/2026-08-Sleep-Article.md, updated Health.md (new Sleep section).
+  ```
+- commits and pushes inside the `wiki/` clone
+
+**Query** — you ask a question that spans existing pages:
+
+```
+> What have I read about sleep and how does it connect to my stress notes?
+```
+
+Claude reads `wiki/Home.md`, finds `Health.md` and `Journal/2026-07-Stress.md` are both relevant, reads just those two, and answers with citations like `(see [[Health]], [[2026-07-Stress]])`. If the answer itself is worth keeping — say you asked for a synthesis of everything you know about sleep — Claude offers to file it back as a new page (e.g. `wiki/Concepts/Sleep.md`), same as an ingest.
+
+**Lint** — periodically, or when something feels off:
+
+```
+> Can you health-check the wiki?
+```
+
+Claude scans for things like a `Sources/2026-08-Sleep-Article.md` that nothing links to (orphan page), or a claim in `Health.md` that a newer source contradicts, and reports them for you to confirm before it fixes anything.
+
 ## Automated wiki sync
 
 Two workflows keep this repo's GitHub Wiki in sync with code changes on merge to `main`:
