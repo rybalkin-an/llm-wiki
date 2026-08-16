@@ -19,3 +19,5 @@ Two workflows keep this repo's GitHub Wiki in sync with code changes on merge to
 4. Generate a classic GitHub PAT with `repo` scope and add it as repo secret `WIKI_SYNC_TOKEN` — the default `GITHUB_TOKEN` can't push to the wiki repo, and wiki access isn't reliably supported on fine-grained PATs.
 
 Full details and rationale are documented as comments at the top of `update-wiki.yml` and `wiki-sync-detect.yml`.
+
+Note: this repo has no `src/` or `docs/` folders yet — add them and revisit the `paths:` filters in both workflow files once real code/doc structure exists.
