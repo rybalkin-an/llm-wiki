@@ -1,0 +1,32 @@
+name: Wiki Sync - Detect Changes
+
+# This workflow only exists to be watched by
+# .github/workflows/update-wiki.yml via a `workflow_run` trigger.
+#
+# Why it's split out: anthropics/claude-code-action@v1 refuses to run on a
+# raw `push` event (it hard-validates GITHUB_EVENT_NAME against an allowlist
+# that includes `workflow_run` but not `push`). This workflow does the cheap
+# part — noticing that a relevant path changed on main — on the event type
+# that's actually allowed to trigger `push`. The real work happens in
+# update-wiki.yml, triggered by this workflow's completion.
+#
+# Keep the `paths:` filter here in sync with the one you intend for the
+# wiki sync — this is what actually gates when update-wiki.yml runs.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "docs/**"
+      - "README.md"
+
+permissions:
+  contents: read
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Relevant paths changed on main (${{ github.sha }}); update-wiki.yml will pick this up."

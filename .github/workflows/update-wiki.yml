@@ -14,25 +14,31 @@ name: Update GitHub Wiki
 #      - Repo Settings -> Secrets and variables -> Actions -> New repository
 #        secret -> name it CLAUDE_CODE_OAUTH_TOKEN -> paste the value.
 #
-# 3. WIKI_SYNC_TOKEN (a GitHub PAT, classic or fine-grained, with `repo`
-#    scope / "Contents: read and write" on this repository):
+# 3. WIKI_SYNC_TOKEN (a classic GitHub PAT with `repo` scope):
 #      - The default GITHUB_TOKEN cannot push to <repo>.wiki.git — wikis
-#        are not covered by the `contents` permission grant.
+#        are not covered by the `contents` permission grant. Fine-grained
+#        PATs are not reliably supported for wiki access either.
 #      - Create a PAT under Settings -> Developer settings -> Personal
-#        access tokens, then add it as secret WIKI_SYNC_TOKEN.
+#        access tokens (classic), then add it as secret WIKI_SYNC_TOKEN.
 #
-# 4. Adjust the `paths:` filter below to match the folders in this repo
-#    that should actually drive documentation updates.
+# 4. Adjust the `paths:` filter in wiki-sync-detect.yml (not in this file)
+#    to match the folders in this repo that should actually drive
+#    documentation updates. Keep both files' filters in sync.
+#
+# WHY THIS WORKFLOW TRIGGERS ON `workflow_run` INSTEAD OF `push`:
+# anthropics/claude-code-action@v1 hard-rejects the `push` event
+# (observed failure: "Unsupported event type: push") — it only accepts
+# issue/PR/dispatch/schedule/workflow_run events. wiki-sync-detect.yml
+# does the actual push-triggered path filtering; this workflow reacts to
+# that workflow's completion, which IS an accepted event type.
 # ---------------------------------------------------------------------------
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "src/**"
-      - "docs/**"
-      - "README.md"
+  workflow_run:
+    workflows:
+      - "Wiki Sync - Detect Changes"
+    types:
+      - completed
 
 # contents: read is enough — the wiki push uses WIKI_SYNC_TOKEN, not
 # GITHUB_TOKEN, and this workflow never modifies the main repo.
@@ -40,18 +46,20 @@ permissions:
   contents: read
 
 concurrency:
-  group: update-wiki-${{ github.ref }}
+  group: update-wiki-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
 jobs:
   update-wiki:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main repo
-        uses: actions/checkout@v4
+      - name: Checkout main repo at triggering commit
+        uses: actions/checkout@v7
         with:
           path: repo
-          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
 
       - name: Checkout wiki repo
         run: |
@@ -63,14 +71,11 @@ jobs:
         id: diff
         working-directory: repo
         run: |
-          BEFORE="${{ github.event.before }}"
-          # First push to main (or a force-push) can report an all-zero SHA;
-          # fall back to the parent of HEAD in that case.
-          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            BEFORE=$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)
-          fi
-
-          git diff "$BEFORE" "${{ github.sha }}" -- src docs README.md > ../wiki-sync.diff || true
+          # fetch-depth: 2 above guarantees HEAD~1 exists. This diffs the
+          # single triggering commit; if a push lands multiple commits at
+          # once, only the last one is captured here — widen fetch-depth
+          # and this range if that matters for your workflow.
+          git diff HEAD~1 HEAD -- src docs README.md > ../wiki-sync.diff || true
 
           if [ ! -s ../wiki-sync.diff ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -111,6 +116,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Claude made no wiki changes for this diff."
           else
-            git commit -m "Auto-update wiki for ${{ github.sha }}"
+            git commit -m "Auto-update wiki for ${{ github.event.workflow_run.head_sha }}"
             git push
           fi
