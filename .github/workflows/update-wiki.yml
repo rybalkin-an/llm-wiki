@@ -8,20 +8,28 @@ name: Update GitHub Wiki
 #    has been created through the web UI (Repo -> Wiki tab -> "Create the
 #    first page"). Do that once, manually, before the first run.
 #
-# 2. CLAUDE_CODE_OAUTH_TOKEN (subscription auth, no API key involved):
+# 2. Install the Claude GitHub App on this repository:
+#    https://github.com/apps/claude -> Install (or Configure) -> select
+#    this repo. claude-code-action@v1 exchanges an OIDC token for a GitHub
+#    App installation token on every run — without this it fails with
+#    "401 Unauthorized - Claude Code is not installed on this repository",
+#    observed directly from a live run. This is separate from, and in
+#    addition to, the CLAUDE_CODE_OAUTH_TOKEN secret below.
+#
+# 3. CLAUDE_CODE_OAUTH_TOKEN (subscription auth, no API key involved):
 #      - Run `claude setup-token` locally (requires a Claude Pro/Max login).
 #      - Copy the printed token.
 #      - Repo Settings -> Secrets and variables -> Actions -> New repository
 #        secret -> name it CLAUDE_CODE_OAUTH_TOKEN -> paste the value.
 #
-# 3. WIKI_SYNC_TOKEN (a classic GitHub PAT with `repo` scope):
+# 4. WIKI_SYNC_TOKEN (a classic GitHub PAT with `repo` scope):
 #      - The default GITHUB_TOKEN cannot push to <repo>.wiki.git — wikis
 #        are not covered by the `contents` permission grant. Fine-grained
 #        PATs are not reliably supported for wiki access either.
 #      - Create a PAT under Settings -> Developer settings -> Personal
 #        access tokens (classic), then add it as secret WIKI_SYNC_TOKEN.
 #
-# 4. Adjust the `paths:` filter in wiki-sync-detect.yml (not in this file)
+# 5. Adjust the `paths:` filter in wiki-sync-detect.yml (not in this file)
 #    to match the folders in this repo that should actually drive
 #    documentation updates. Keep both files' filters in sync.
 #

@@ -14,7 +14,8 @@ Two workflows keep this repo's GitHub Wiki in sync with code changes on merge to
 **One-time setup required before this runs successfully:**
 
 1. Create the wiki's first page manually (Repo → Wiki tab → "Create the first page") — GitHub doesn't initialize `<repo>.wiki.git` until a page exists.
-2. Generate a Claude Code OAuth token locally (`claude setup-token`, needs a Pro/Max login) and add it as repo secret `CLAUDE_CODE_OAUTH_TOKEN`. No `ANTHROPIC_API_KEY` is used anywhere.
-3. Generate a classic GitHub PAT with `repo` scope and add it as repo secret `WIKI_SYNC_TOKEN` — the default `GITHUB_TOKEN` can't push to the wiki repo, and wiki access isn't reliably supported on fine-grained PATs.
+2. Install the Claude GitHub App on this repo: [github.com/apps/claude](https://github.com/apps/claude) → Install (or Configure) → select this repository. `claude-code-action@v1` exchanges an OIDC token for a GitHub App installation token on every run and fails with "Claude Code is not installed on this repository" without it — this is separate from the OAuth token below.
+3. Generate a Claude Code OAuth token locally (`claude setup-token`, needs a Pro/Max login) and add it as repo secret `CLAUDE_CODE_OAUTH_TOKEN`. No `ANTHROPIC_API_KEY` is used anywhere.
+4. Generate a classic GitHub PAT with `repo` scope and add it as repo secret `WIKI_SYNC_TOKEN` — the default `GITHUB_TOKEN` can't push to the wiki repo, and wiki access isn't reliably supported on fine-grained PATs.
 
 Full details and rationale are documented as comments at the top of `update-wiki.yml` and `wiki-sync-detect.yml`.
