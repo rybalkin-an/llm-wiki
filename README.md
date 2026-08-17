@@ -2,7 +2,7 @@
 
 ## Personal knowledge base
 
-This repo is also a personal knowledge-base wiki, following the "LLM Wiki" pattern: `raw/` holds immutable source material (tracked in this repo), the actual wiki pages live in this repo's GitHub Wiki (browse them under the **Wiki** tab), and `CLAUDE.md` is the schema/workflow file that tells Claude Code how to ingest sources, answer queries, and keep the wiki healthy. See `CLAUDE.md` for the full workflow.
+This repo is also a personal knowledge-base wiki, following the "LLM Wiki" pattern: `raw/` holds immutable source material (local-only, gitignored — this repo is public and sources aren't generally ours to redistribute), the actual wiki pages live in this repo's GitHub Wiki (browse them under the **Wiki** tab), and `CLAUDE.md` is the schema/workflow file that tells Claude Code how to ingest sources, answer queries, and keep the wiki healthy. See `CLAUDE.md` for the full workflow.
 
 `wiki/` in the working tree is a local clone of the GitHub Wiki (`git clone git@github.com:rybalkin-an/llm-wiki.wiki.git wiki`) — it's gitignored here since it's its own separate git repo with its own history and remote.
 

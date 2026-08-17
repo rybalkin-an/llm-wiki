@@ -1,2 +1,6 @@
 # Local clone of the GitHub Wiki (its own separate git repo, see CLAUDE.md)
 /wiki/
+
+# Raw source material is local-only: never pushed to this public repo, since
+# sources (articles, specs, etc.) are rarely ours to redistribute. See CLAUDE.md.
+/raw/
